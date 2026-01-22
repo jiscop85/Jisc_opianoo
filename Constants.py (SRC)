@@ -2,3 +2,8 @@
 
 ثوابت و مقادیر ثابت برنانه
 """"
+import config
+
+#MIDI config
+MIDI_NOTES ={
+     'C':0, 'C#','Db':1, 'D':2, 'D#': 3, 'Eb':3,
