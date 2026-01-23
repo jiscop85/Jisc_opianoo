@@ -1,0 +1,32 @@
+"""
+سیستم لاگینگ
+"""
+
+import logging
+import sys
+from pathlib import Path
+import config
+
+
+def setup_logger(name: str = "PianoMasterTutor", level: str = None) -> logging.Logger:
+    """
+    راه اندازی logger
+
+    Args:
+        name: نام logger
+        level: سطح لاگ (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+
+    Returns:
+        Logger instance
+    """
+
+    logger = logging.getLogger(name)
+
+    if level is None:
+        level = config.LOG_LEVEL
+
+    logger.setLevel(getattr(logging, level.upper()))
+
+    # جلوگیری از ایجاد handler های تکراری
+    if logger.handlers:
+        return logger
