@@ -51,3 +51,23 @@ HAND_LANDMARKS = {
 # کلیدهای سفید و سیاه در یک اکتاو
 WHITE_KEYS_PER_OCTAVE = ['C', 'D', 'E', 'F', 'G', 'A', 'B']
 BLACK_KEYS_PER_OCTAVE = ['C#', 'D#', 'F#', 'G#', 'A#']
+
+# تعداد کلیدهای سفید و سیاه در پیانو 88 کلویه
+TOTAL_WHITE_KEYS = 52
+TOTAL_BLACK_KEYS = 36
+
+# برای پیانو استاندارد MIDI محدوده
+PIANO_MIDI_RANGE = (21, 108)  # A0 تا C8
+
+# رنگ‌ها
+COLORS = config.COLORS
+
+# تنظیمات پیش‌فرض
+DEFAULT_SETTINGS = {
+    'tempo': config.DEFAULT_TEMPO,
+    'volume': 0.7,
+    'metronome_enabled': True,
+    'hand_tracking_enabled': True,
+    'show_landmarks': True,
+    'show_sheet_music': True
+}
