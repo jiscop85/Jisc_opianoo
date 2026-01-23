@@ -46,3 +46,9 @@ def setup_logger(name: str = "PianoMasterTutor", level: str = None) -> logging.L
     # Handler برای کنسول
     console_handler = logging.StreamHandler(sys.stdout)
     console_handler.setLevel(logging.INFO)
+ console_handler.setFormater(formater)
+
+logging.addHandler(file_handler)
+logging.addHandler(console_handler)
+
+return logger
