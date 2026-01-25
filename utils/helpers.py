@@ -49,3 +49,52 @@ def midi_to_note_name(midi_number: int) -> str:
     return f"{note}{octave}"
 
 
+def note_name_to_midi(note_name: str) -> Optional[int]:
+    """تبدیل نام نت به شماره MIDI"""
+    from .constants import MIDI_NOTES
+    
+    # حذف فاصله‌ها و تبدیل به حروف بزرگ
+    note_name = note_name.strip().upper()
+    
+    # تشخیص نت و اکتاو
+    if len(note_name) < 2:
+        return None
+    
+    note = note_name[0]
+    if len(note_name) > 2 and note_name[1] in ['#', 'B']:
+        note = note_name[:2]
+        octave_str = note_name[2:]
+    else:
+        octave_str = note_name[1:]
+    
+    # تبدیل B به b برای flat
+    if note == 'B' and len(note_name) > 1 and note_name[1] == 'B':
+        note = 'Bb'
+        octave_str = note_name[2:] if len(note_name) > 2 else ''
+    
+    if note not in MIDI_NOTES:
+        return None
+    
+    try:
+        octave = int(octave_str)
+        midi_number = (octave + 1) * 12 + MIDI_NOTES[note]
+        return midi_number
+    except ValueError:
+        return None
+
+
+def is_white_key(midi_number: int) -> bool:
+    """بررسی اینکه آیا کلاویه سفید است"""
+    from .constants import NOTE_NAMES, WHITE_KEYS_PER_OCTAVE
+    note_name = NOTE_NAMES[midi_number % 12]
+    return note_name in WHITE_KEYS_PER_OCTAVE
+
+
+def clamp(value: float, min_val: float, max_val: float) -> float:
+    """محدود کردن مقدار بین min و max"""
+    return max(min_val, min(value, max_val))
+
+
+
+
+
