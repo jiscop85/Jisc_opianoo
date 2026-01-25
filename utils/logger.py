@@ -6,4 +6,52 @@ import sys
 from pathlib import Path
 import config
 
+def setup_logger(name: str = "PianoMasterTutor", level: str = None) -> logging.Logger:
+    """
+    راه‌اندازی logger
+    
+    Args:
+        name: نام logger
+        level: سطح لاگ (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+    
+    Returns:
+        Logger instance
+    """
+    logger = logging.getLogger(name)
+    
+    if level is None:
+        level = config.LOG_LEVEL
+    
+    logger.setLevel(getattr(logging, level.upper()))
+    
+    # جلوگیری از ایجاد handler های تکراری
+    if logger.handlers:
+        return logger
+    
+    # فرمت لاگ
+    formatter = logging.Formatter(config.LOG_FORMAT)
+    
+    # Handler برای فایل
+    log_file = Path(config.LOG_FILE)
+    log_file.parent.mkdir(parents=True, exist_ok=True)
+    
+    file_handler = logging.FileHandler(log_file, encoding='utf-8')
+    file_handler.setLevel(logging.DEBUG)
+    file_handler.setFormatter(formatter)
+    
+    # Handler برای کنسول
+    console_handler = logging.StreamHandler(sys.stdout)
+    console_handler.setLevel(logging.INFO)
+    console_handler.setFormatter(formatter)
+    
+    logger.addHandler(file_handler)
+    logger.addHandler(console_handler)
+    
+    return logger
+
+
+# Logger پیش‌فرض
+logger = setup_logger()
+
+
 
