@@ -97,4 +97,74 @@ def clamp(value: float, min_val: float, max_val: float) -> float:
 
 
 
+def normalize_coordinates(
+    x: float,
+    y: float,
+    width: int,
+    height: int
+) -> Tuple[float, float]:
+    """نرمال‌سازی مختصات به بازه [0, 1]"""
+    return (x / width, y / height)
+
+
+def denormalize_coordinates(
+    x: float,
+    y: float,
+    width: int,
+    height: int
+) -> Tuple[int, int]:
+    """تبدیل مختصات نرمال شده به پیکسل"""
+    return (int(x * width), int(y * height))
+
+
+def calculate_key_position(midi_number: int, total_keys: int = 88) -> Tuple[int, int]:
+    """
+    محاسبه موقعیت کلاویه در پیانو مجازی
+    
+    Returns:
+        (x_position, key_width) برای رندر
+    """
+    from .constants import WHITE_KEYS_PER_OCTAVE, BLACK_KEYS_PER_OCTAVE
+    
+    # محاسبه موقعیت نسبی در پیانو
+    # پیانو استاندارد از A0 (MIDI 21) شروع می‌شود
+    base_midi = 21
+    relative_midi = midi_number - base_midi
+    
+    if relative_midi < 0 or relative_midi >= total_keys:
+        return (0, 0)
+    
+    # شمارش کلیدهای سفید قبل از این نت
+    white_key_count = 0
+    for i in range(relative_midi):
+        check_midi = base_midi + i
+        if is_white_key(check_midi):
+            white_key_count += 1
+    
+    # عرض کلید سفید (فرض می‌کنیم)
+    white_key_width = 20  # پیکسل
+    black_key_width = 12  # پیکسل
+    
+    if is_white_key(midi_number):
+        x_pos = white_key_count * white_key_width
+        return (x_pos, white_key_width)
+    else:
+        # کلید سیاه - باید بین کلیدهای سفید قرار گیرد
+        # این یک تقریب ساده است
+        x_pos = white_key_count * white_key_width - black_key_width // 2
+        return (x_pos, black_key_width)
+
+
+def format_time(seconds: float) -> str:
+    """فرمت زمان به MM:SS"""
+    minutes = int(seconds // 60)
+    secs = int(seconds % 60)
+    return f"{minutes:02d}:{secs:02d}"
+
+
+def calculate_accuracy(correct: int, total: int) -> float:
+    """محاسبه دقت به درصد"""
+    if total == 0:
+        return 0.0
+    return (correct / total) * 100.0
 
