@@ -48,4 +48,70 @@ class ThemeManager:
         if theme_name is None:
             theme_name = self.current_theme
      
+   
+        return self.THEMES.get(theme_name, self.THEMES['light'])
+    
+    def set_theme(self, theme_name: str):
+        """تنظیم تم"""
+        if theme_name in self.THEMES:
+            self.current_theme = theme_name
+            self.settings.setValue('theme', theme_name)
+            logger.info(f"Theme changed to: {theme_name}")
+        else:
+            logger.warning(f"Unknown theme: {theme_name}")
+    
+    def get_current_theme(self) -> Dict:
+        """دریافت تم فعلی"""
+        return self.get_theme(self.current_theme)
+    
+    def get_stylesheet(self, theme_name: Optional[str] = None) -> str:
+        """دریافت stylesheet برای تم"""
+        theme = self.get_theme(theme_name)
+        
+        stylesheet = f"""
+        QMainWindow {{
+            background-color: {theme['background']};
+            color: {theme['text']};
+        }}
+        
+        QWidget {{
+            background-color: {theme['background']};
+            color: {theme['text']};
+        }}
+        
+        QPushButton {{
+            background-color: {theme['button']};
+            color: {theme['text']};
+            border: 1px solid {theme['accent']};
+            padding: 5px;
+            border-radius: 3px;
+        }}
+        
+        QPushButton:hover {{
+            background-color: {theme['button_hover']};
+        }}
+        
+        QPushButton:pressed {{
+            background-color: {theme['accent']};
+        }}
+        
+        QLabel {{
+            color: {theme['text']};
+        }}
+        
+        QListWidget {{
+            background-color: {theme['background']};
+            color: {theme['text']};
+            border: 1px solid {theme['accent']};
+        }}
+        
+        QTextEdit {{
+            background-color: {theme['background']};
+            color: {theme['text']};
+            border: 1px solid {theme['accent']};
+        }}
+        """
+        
+        return stylesheet
+
 
