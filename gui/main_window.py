@@ -169,4 +169,101 @@ class MainWindow(QMainWindow):
         widget.setLayout(layout)
         return widget
 
+    
+    def create_center_panel(self) -> QWidget:
+        """ایجاد پنل مرکزی"""
+        widget = QWidget()
+        layout = QVBoxLayout()
+        
+        # وبکم
+        self.webcam_view = WebcamView()
+        layout.addWidget(self.webcam_view)
+        
+        # پیانو
+        self.piano_widget = PianoWidget()
+        self.piano_widget.key_pressed.connect(self.on_key_pressed)
+        self.piano_widget.key_released.connect(self.on_key_released)
+        layout.addWidget(self.piano_widget)
+        
+        widget.setLayout(layout)
+        return widget
+    
+    def create_right_panel(self) -> QWidget:
+        """ایجاد پنل راست"""
+        widget = QWidget()
+        layout = QVBoxLayout()
+        
+        # نمایش نت‌ها
+        self.sheet_music_view = SheetMusicView()
+        layout.addWidget(self.sheet_music_view)
+        
+        # آمار درس
+        self.stats_label = QLabel("آمار: -")
+        layout.addWidget(self.stats_label)
+        
+        widget.setLayout(layout)
+        return widget
+    
+    def create_menu_bar(self):
+        """ایجاد منو"""
+        menubar = self.menuBar()
+        
+        # منوی فایل
+        file_menu = menubar.addMenu("فایل")
+        
+        logout_action = file_menu.addAction("خروج")
+        logout_action.triggered.connect(self.logout)
+        
+        exit_action = file_menu.addAction("خروج از برنامه")
+        exit_action.triggered.connect(self.close)
+        
+        # منوی تنظیمات
+        settings_menu = menubar.addMenu("تنظیمات")
+        
+        calibration_action = settings_menu.addAction("کالیبراسیون")
+        calibration_action.triggered.connect(self.show_calibration)
+        
+        # منوی تم
+        theme_menu = settings_menu.addMenu("تم")
+        light_theme_action = theme_menu.addAction("روشن")
+        light_theme_action.triggered.connect(lambda: self.change_theme('light'))
+        dark_theme_action = theme_menu.addAction("تاریک")
+        dark_theme_action.triggered.connect(lambda: self.change_theme('dark'))
+        
+        # منوی نمایش
+        view_menu = menubar.addMenu("نمایش")
+        dashboard_action = view_menu.addAction("داشبورد")
+        dashboard_action.triggered.connect(self.show_dashboard)
+    
+    def setup_audio(self):
+        """راه‌اندازی موتور صوتی"""
+        try:
+            self.audio_engine = AudioEngine()
+            if not self.audio_engine.initialize():
+                QMessageBox.warning(self, "هشدار", "موتور صوتی راه‌اندازی نشد. صدا در دسترس نیست.")
+        except Exception as e:
+            logger.error(f"Error setting up audio: {e}")
+            QMessageBox.warning(self, "خطا", f"خطا در راه‌اندازی صدا: {e}")
+    
+    def show_auth_dialog(self):
+        """نمایش دیالوگ احراز هویت"""
+        dialog = AuthDialog(self)
+        if dialog.exec() == AuthDialog.Accepted:
+            self.current_user = dialog.get_user()
+            self.statusBar.showMessage(f"کاربر: {self.current_user.username}")
+            
+            # به‌روزرسانی dashboard
+            if self.dashboard_widget:
+                self.dashboard_widget.set_user(self.current_user.id)
+            
+            # لود کالیبراسیون
+            if self.current_user:
+                calibration_points = self.user_manager.load_calibration(self.current_user.id)
+                if calibration_points:
+                    self.calibration_points = np.array(calibration_points, dtype=np.float32)
+        else:
+            # اگر کاربر لاگین نکرد، برنامه را ببند
+            self.close()
+    
+ 
 
