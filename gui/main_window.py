@@ -264,6 +264,71 @@ class MainWindow(QMainWindow):
         else:
             # اگر کاربر لاگین نکرد، برنامه را ببند
             self.close()
+       def show_calibration(self):
+        """نمایش دیالوگ کالیبراسیون"""
+        dialog = CalibrationDialog(self)
+        dialog.calibration_complete.connect(self.on_calibration_complete)
+        dialog.exec()
     
+    def on_calibration_complete(self, points: np.ndarray):
+        """هندل کردن تکمیل کالیبراسیون"""
+        self.calibration_points = points
+        
+        # ذخیره در دیتابیس
+        if self.current_user:
+            points_list = points.tolist()
+            self.user_manager.save_calibration(
+                self.current_user.id,
+                points_list
+            )
+        
+        # به‌روزرسانی hand tracker
+        if self.hand_tracker:
+            self.hand_tracker.set_calibration_points(points)
+        
+        QMessageBox.information(self, "موفق", "کالیبراسیون با موفقیت انجام شد!")
+    
+    def on_lesson_selected(self, midi_file_path: str):
+        """هندل کردن انتخاب درس"""
+        try:
+            self.lesson_engine = LessonEngine(midi_file_path)
+            self.sheet_music_view.set_lesson_notes(self.lesson_engine.lesson_notes)
+            self.start_button.setEnabled(True)
+            self.statusBar.showMessage(f"درس انتخاب شد: {midi_file_path}")
+        except Exception as e:
+            logger.error(f"Error loading lesson: {e}")
+            QMessageBox.critical(self, "خطا", f"خطا در بارگذاری درس: {e}")
+    
+    def start_lesson(self):
+        """شروع درس"""
+        if not self.lesson_engine:
+            QMessageBox.warning(self, "هشدار", "لطفاً ابتدا یک درس انتخاب کنید")
+            return
+        
+        if self.calibration_points is None:
+            reply = QMessageBox.question(
+                self,
+                "کالیبراسیون",
+                "کالیبراسیون انجام نشده است. آیا می‌خواهید ادامه دهید؟",
+                QMessageBox.Yes | QMessageBox.No
+            )
+            if reply == QMessageBox.No:
+                return
+        
+        # شروع hand tracking
+        if not self.hand_tracker:
+            self.hand_tracker = HandTracker(self.calibration_points)
+            self.hand_tracker.frame_ready.connect(self.webcam_view.update_frame)
+            self.hand_tracker.hands_detected.connect(self.on_hands_detected)
+            self.hand_tracker.start_tracking()
+        
+        # شروع session recorder
+        if self.current_user and self.lesson_engine:
+            lesson_id = 1  # باید از دیتابیس لود شود
+            self.session_recorder = SessionRecorder(self.current_user.id, lesson_id)
+            if self.is_recording:
+                self.session_recorder.start_recording()
+
  
+
 
