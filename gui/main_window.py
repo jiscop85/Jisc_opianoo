@@ -484,6 +484,94 @@ class MainWindow(QMainWindow):
         dialog = ReportDialog(error_logs, lesson_name, self)
         dialog.exec()
         
+        # ذخیره پیشرفت در دیتابیس
+        progress = self.lesson_engine.get_progress()
+        stats = progress['stats']
+        
+        # پیدا کردن lesson_id از مسیر فایل
+        # این یک پیاده‌سازی ساده است - می‌توان بهبود داد
+        lesson_id = 1  # باید از دیتابیس لود شود
+        
+        self.user_manager.save_lesson_progress(
+            self.current_user.id,
+            lesson_id,
+            stats['total_notes'],
+            stats['correct_notes'],
+            stats['wrong_notes'],
+            stats['missed_notes'],
+            self.lesson_engine.get_current_time(),
+            error_logs
+        )
+    
+    def logout(self):
+        """خروج کاربر"""
+        reply = QMessageBox.question(
+            self,
+            "خروج",
+            "آیا مطمئن هستید که می‌خواهید خارج شوید؟",
+            QMessageBox.Yes | QMessageBox.No
+        )
+        
+        if reply == QMessageBox.Yes:
+            self.current_user = None
+            self.show_auth_dialog()
+    
+    def toggle_recording(self):
+        """تغییر وضعیت ضبط"""
+        if not self.is_lesson_active:
+            QMessageBox.warning(self, "هشدار", "ابتدا یک درس را شروع کنید")
+            return
+        
+        if not self.session_recorder:
+            QMessageBox.warning(self, "هشدار", "Session recorder راه‌اندازی نشده")
+            return
+        
+        if self.is_recording:
+            self.session_recorder.stop_recording()
+            self.is_recording = False
+            self.record_button.setText("🔴 ضبط")
+            self.statusBar.showMessage("ضبط متوقف شد")
+        else:
+            self.session_recorder.start_recording()
+            self.is_recording = True
+            self.record_button.setText("⏹ توقف ضبط")
+            self.statusBar.showMessage("ضبط شروع شد")
+    
+    def change_theme(self, theme_name: str):
+        """تغییر تم"""
+        self.theme_manager.set_theme(theme_name)
+        self.apply_theme()
+        QMessageBox.information(self, "تم", f"تم به {theme_name} تغییر کرد")
+    
+    def apply_theme(self):
+        """اعمال تم فعلی"""
+        stylesheet = self.theme_manager.get_stylesheet()
+        self.setStyleSheet(stylesheet)
+    
+    def show_dashboard(self):
+        """نمایش داشبورد"""
+        if self.dashboard_widget:
+            self.dashboard_widget.update_dashboard()
+            QMessageBox.information(self, "داشبورد", "داشبورد به‌روزرسانی شد")
+    
+    def closeEvent(self, event):
+        """هندل کردن بستن پنجره"""
+        # توقف کامپوننت‌ها
+        if self.hand_tracker:
+            self.hand_tracker.stop_tracking()
+        
+        if self.audio_engine:
+            self.audio_engine.close()
+        
+        if self.metronome:
+            self.metronome.stop()
+        
+        # ذخیره ضبط اگر در حال ضبط است
+        if self.session_recorder and self.is_recording:
+            self.session_recorder.stop_recording()
+            self.session_recorder.save_recording()
+        
+        event.accept()
 
 
 
