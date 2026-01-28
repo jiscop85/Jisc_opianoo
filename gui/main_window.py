@@ -34,3 +34,67 @@ from ..gui.theme_manager import ThemeManager
 from ..gui.dashboard_widget import DashboardWidget
 
 from ..utils.logger import logger
+
+
+
+class MainWindow(QMainWindow):
+    """پنجره اصلی"""
+    
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("Piano Master Tutor")
+        self.setGeometry(100, 100, config.WINDOW_WIDTH, config.WINDOW_HEIGHT)
+        
+        # کاربر فعلی
+        self.current_user: Optional[User] = None
+        self.user_manager = UserManager()
+        
+        # کامپوننت‌های اصلی
+        self.hand_tracker: Optional[HandTracker] = None
+        self.audio_engine: Optional[AudioEngine] = None
+        self.lesson_engine: Optional[LessonEngine] = None
+        self.metronome: Optional[Metronome] = None
+        self.posture_detector = PostureDetector()
+        self.session_recorder: Optional[SessionRecorder] = None
+        self.gamification = GamificationManager()
+        self.theme_manager = ThemeManager()
+        
+        # UI components
+        self.piano_widget: Optional[PianoWidget] = None
+        self.webcam_view: Optional[WebcamView] = None
+        self.sheet_music_view: Optional[SheetMusicView] = None
+        self.lesson_selector: Optional[LessonSelector] = None
+        self.dashboard_widget: Optional[DashboardWidget] = None
+        
+        # وضعیت
+        self.is_lesson_active = False
+        self.is_recording = False
+        self.calibration_points: Optional[np.ndarray] = None
+        
+        # اعمال تم
+        self.apply_theme()
+        
+        self.setup_ui()
+        self.setup_audio()
+        self.show_auth_dialog()
+    
+    def setup_ui(self):
+        """راه‌اندازی رابط کاربری"""
+        central_widget = QWidget()
+        main_layout = QHBoxLayout()
+        
+        # Splitter برای تقسیم صفحه
+        splitter = QSplitter(Qt.Horizontal)
+        
+        # پنل چپ: انتخاب درس و کنترل‌ها
+        left_panel = self.create_left_panel()
+        splitter.addWidget(left_panel)
+        
+        # پنل وسط: پیانو و وبکم
+        center_panel = self.create_center_panel()
+        splitter.addWidget(center_panel)
+        
+        # پنل راست: نت‌های موسیقی
+        right_panel = self.create_right_panel()
+        splitter.addWidget(right_panel)
+    
