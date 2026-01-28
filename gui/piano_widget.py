@@ -75,6 +75,92 @@ class PianoWidget(QWidget):
             return
         
         x, y, w, h = self.key_positions[midi_note]
+             # تعیین رنگ
+        if midi_note in self.pressed_keys:
+            color = QColor(*config.COLORS['white_key_pressed' if is_white else 'black_key_pressed'])
+        elif midi_note in self.highlighted_keys:
+            color = QColor(*config.COLORS['correct_note'])
+        else:
+            color = QColor(*config.COLORS['white_key' if is_white else 'black_key'])
         
+        # رسم مستطیل
+        painter.setBrush(QBrush(color))
+        painter.setPen(QPen(QColor(100, 100, 100), 1))
+        painter.drawRect(x, y, w, h)
+        
+        # رسم نام نت (فقط برای کلیدهای سفید)
+        if is_white and midi_note % 12 == 0:  # فقط C
+            from ..utils.helpers import midi_to_note_name
+            note_name = midi_to_note_name(midi_note)
+            painter.setPen(QPen(QColor(0, 0, 0)))
+            painter.drawText(x, h - 5, w, 20, Qt.AlignCenter, note_name)
+    
+    def mousePressEvent(self, event):
+        """هندل کردن کلیک ماوس"""
+        clicked_note = self._get_note_at_position(event.pos().x(), event.pos().y())
+        if clicked_note:
+            self.press_key(clicked_note)
+    
+    def mouseReleaseEvent(self, event):
+        """هندل کردن رها کردن ماوس"""
+        clicked_note = self._get_note_at_position(event.pos().x(), event.pos().y())
+        if clicked_note:
+            self.release_key(clicked_note)
+    
+    def _get_note_at_position(self, x: int, y: int) -> int:
+        """پیدا کردن نت در موقعیت مشخص"""
+        # اول کلیدهای سیاه را بررسی می‌کنیم (چون بالاتر هستند)
+        for midi_note in range(HIGHEST_NOTE, LOWEST_NOTE - 1, -1):
+            if not check_white_key(midi_note) and midi_note in self.key_positions:
+                kx, ky, kw, kh = self.key_positions[midi_note]
+                if kx <= x <= kx + kw and ky <= y <= ky + kh:
+                    return midi_note
+        
+        # سپس کلیدهای سفید
+        for midi_note in range(LOWEST_NOTE, HIGHEST_NOTE + 1):
+            if check_white_key(midi_note) and midi_note in self.key_positions:
+                kx, ky, kw, kh = self.key_positions[midi_note]
+                if kx <= x <= kx + kw and ky <= y <= ky + kh:
+                    return midi_note
+        
+        return None
+    
+    def press_key(self, midi_note: int):
+        """فشردن یک کلاویه"""
+        if midi_note not in self.pressed_keys:
+            self.pressed_keys.add(midi_note)
+            self.update()
+            self.key_pressed.emit(midi_note)
+    
+    def release_key(self, midi_note: int):
+        """رها کردن یک کلاویه"""
+        if midi_note in self.pressed_keys:
+            self.pressed_keys.remove(midi_note)
+            self.update()
+            self.key_released.emit(midi_note)
+    
+    def highlight_key(self, midi_note: int):
+        """هایلایت کردن یک کلاویه"""
+        if midi_note not in self.highlighted_keys:
+            self.highlighted_keys.add(midi_note)
+            self.update()
+    
+    def unhighlight_key(self, midi_note: int):
+        """حذف هایلایت از یک کلاویه"""
+        if midi_note in self.highlighted_keys:
+            self.highlighted_keys.remove(midi_note)
+            self.update()
+    
+    def clear_highlights(self):
+        """پاک کردن تمام هایلایت‌ها"""
+        self.highlighted_keys.clear()
+        self.update()
+    
+    def get_key_positions(self) -> Dict[int, tuple]:
+        """دریافت موقعیت تمام کلاویه‌ها"""
+        return self.key_positions.copy()
+
+
    
+
 
