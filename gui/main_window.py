@@ -329,6 +329,81 @@ class MainWindow(QMainWindow):
             if self.is_recording:
                 self.session_recorder.start_recording()
 
- 
+         
+        # شروع درس
+        self.lesson_engine.start_lesson()
+        self.is_lesson_active = True
+        
+        # فعال کردن دکمه ضبط
+        self.record_button.setEnabled(True)
+        
+        # به‌روزرسانی UI
+        self.start_button.setEnabled(False)
+        self.pause_button.setEnabled(True)
+        self.stop_button.setEnabled(True)
+        
+        # تایمر برای به‌روزرسانی آمار
+        self.stats_timer = QTimer()
+        self.stats_timer.timeout.connect(self.update_stats)
+        self.stats_timer.start(1000)  # هر ثانیه
+        
+        self.statusBar.showMessage("درس در حال اجرا...")
+    
+    def pause_lesson(self):
+        """توقف موقت درس"""
+        if self.lesson_engine:
+            self.lesson_engine.pause_lesson()
+            self.pause_button.setText("ادامه")
+            self.pause_button.clicked.disconnect()
+            self.pause_button.clicked.connect(self.resume_lesson)
+            self.statusBar.showMessage("درس متوقف شده")
+    
+    def resume_lesson(self):
+        """ادامه درس"""
+        if self.lesson_engine:
+            self.lesson_engine.resume_lesson()
+            self.pause_button.setText("توقف")
+            self.pause_button.clicked.disconnect()
+            self.pause_button.clicked.connect(self.pause_lesson)
+            self.statusBar.showMessage("درس در حال اجرا...")
+    
+    def stop_lesson(self):
+        """پایان درس"""
+        if self.lesson_engine:
+            self.lesson_engine.stop_lesson()
+            self.is_lesson_active = False
+            
+            # توقف تایمر
+            if hasattr(self, 'stats_timer'):
+                self.stats_timer.stop()
+            
+            # به‌روزرسانی UI
+            self.start_button.setEnabled(True)
+            self.pause_button.setEnabled(False)
+            self.stop_button.setEnabled(False)
+            self.pause_button.setText("توقف")
+            self.pause_button.clicked.disconnect()
+            self.pause_button.clicked.connect(self.pause_lesson)
+            
+            # توقف ضبط
+            if self.session_recorder and self.is_recording:
+                self.session_recorder.stop_recording()
+                recording_path = self.session_recorder.save_recording()
+                logger.info(f"Session recorded to: {recording_path}")
+                self.is_recording = False
+                self.record_button.setText("🔴 ضبط")
+            
+            # نمایش گزارش
+            self.show_report()
+            
+            self.statusBar.showMessage("درس به پایان رسید")
+    
+    def on_hands_detected(self, hands: list):
+        """هندل کردن تشخیص دست"""
+        if not self.is_lesson_active or not self.lesson_engine:
+            return
+        
+
+
 
 
