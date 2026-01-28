@@ -403,6 +403,88 @@ class MainWindow(QMainWindow):
         if not self.is_lesson_active or not self.lesson_engine:
             return
         
+        # تشخیص کلاویه‌های فشرده شده
+        piano_keys = self.piano_widget.get_key_positions()
+        
+        for hand in hands:
+            landmarks = hand.get('landmarks', [])
+            if landmarks:
+                pressed_keys = self.hand_tracker.detect_pressed_keys(landmarks, piano_keys)
+                
+                for midi_note in pressed_keys:
+                    self.on_key_pressed(midi_note)
+    
+    def on_key_pressed(self, midi_note: int, finger: Optional[int] = None):
+        """هندل کردن فشردن کلاویه"""
+        # پخش صدا
+        if self.audio_engine:
+            self.audio_engine.play_note(midi_note)
+        
+        # ثبت در session recorder
+        if self.session_recorder and self.is_recording:
+            expected_note = None
+            if self.lesson_engine:
+                # پیدا کردن نت مورد انتظار
+                current_time = self.lesson_engine.get_current_time()
+                for note in self.lesson_engine.lesson_notes:
+                    if abs(note.start_time - current_time) < 0.5:
+                        expected_note = note.midi_note
+                        break
+            
+            correct = (expected_note == midi_note) if expected_note else False
+            self.session_recorder.record_note_press(midi_note, expected_note, finger, correct)
+        
+        # ثبت در درس
+        if self.lesson_engine and self.is_lesson_active:
+            # پیدا کردن نت مورد انتظار برای finger detection
+            expected_finger = None  # می‌توان از music21 یا hard-coded fingerings استفاده کرد
+            
+            success, message, details = self.lesson_engine.register_played_note(
+                midi_note,
+                finger=finger,
+                expected_finger=expected_finger
+            )
+            
+            # به‌روزرسانی نمایش
+            if success:
+                # پیدا کردن نت فعلی و به‌روزرسانی وضعیت
+                current_index = self.lesson_engine.current_note_index
+                if current_index > 0:
+                    self.sheet_music_view.update_note_status(
+                        current_index - 1,
+                        self.lesson_engine.lesson_notes[current_index - 1].status
+                    )
+    
+    def on_key_released(self, midi_note: int):
+        """هندل کردن رها کردن کلاویه"""
+        if self.audio_engine:
+            self.audio_engine.note_off(midi_note)
+    
+    def update_stats(self):
+        """به‌روزرسانی آمار"""
+        if self.lesson_engine:
+            progress = self.lesson_engine.get_progress()
+            stats_text = (
+                f"دقت: {progress['accuracy']:.1f}% | "
+                f"پیشرفت: {progress['progress']:.1f}% | "
+                f"صحیح: {progress['stats']['correct_notes']} | "
+                f"اشتباه: {progress['stats']['wrong_notes']} | "
+                f"از دست رفته: {progress['stats']['missed_notes']}"
+            )
+            self.stats_label.setText(stats_text)
+    
+    def show_report(self):
+        """نمایش گزارش"""
+        if not self.lesson_engine or not self.current_user:
+            return
+        
+        error_logs = self.lesson_engine.get_error_logs()
+        lesson_name = self.lesson_engine.midi_file_path.split('/')[-1]
+        
+        dialog = ReportDialog(error_logs, lesson_name, self)
+        dialog.exec()
+        
+
 
 
 
