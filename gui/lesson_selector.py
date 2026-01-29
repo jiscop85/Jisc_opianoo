@@ -71,3 +71,43 @@ class LessonSelector(QWidget):
             if not difficulty_path.exists():
                 continue
             
+            # بارگذاری فایل‌های MIDI
+            for midi_file in difficulty_path.glob("*.mid"):
+                item = QListWidgetItem(f"[{difficulty.upper()}] {midi_file.stem}")
+                item.setData(Qt.UserRole, str(midi_file))
+                item.setData(Qt.UserRole + 1, difficulty)
+                self.lesson_list.addItem(item)
+        
+        logger.info(f"Loaded {self.lesson_list.count()} lessons")
+    
+    def on_lesson_double_clicked(self, item: QListWidgetItem):
+        """هندل کردن دابل کلیک روی درس"""
+        self.start_lesson(item)
+    
+    def on_start_clicked(self):
+        """هندل کردن کلیک روی دکمه شروع"""
+        current_item = self.lesson_list.currentItem()
+        if current_item:
+            self.start_lesson(current_item)
+    
+    def start_lesson(self, item: QListWidgetItem):
+        """شروع یک درس"""
+        file_path = item.data(Qt.UserRole)
+        if file_path:
+            self.lesson_selected.emit(file_path)
+    
+    def get_selected_lesson(self) -> Optional[str]:
+        """دریافت درس انتخاب شده"""
+        current_item = self.lesson_list.currentItem()
+        if current_item:
+            return current_item.data(Qt.UserRole)
+        return None
+    
+    def update_progress(self, user_id: int, lesson_path: str):
+        """به‌روزرسانی پیشرفت کاربر"""
+        # این می‌تواند از دیتابیس لود شود
+        # در اینجا یک پیاده‌سازی ساده است
+        self.progress_bar.setVisible(True)
+        self.progress_bar.setValue(0)  # می‌توان از دیتابیس لود شود
+
+
