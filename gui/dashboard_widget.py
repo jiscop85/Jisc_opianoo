@@ -121,4 +121,4 @@ class DashboardWidget(QWidget):
         achievements_text = f"تعداد دستاوردها: {stats['achievements_count']}"
         self.achievements_list.setText(achievements_text)
 
-
+#Ending this senction
