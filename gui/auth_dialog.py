@@ -127,6 +127,38 @@ class AuthDialog(QDialog):
         else:
             QMessageBox.warning(self, "خطا", "نام کاربری یا رمز عبور اشتباه است")
     
- 
+    def handle_register(self):
+        """هندل کردن ثبت‌نام"""
+        username = self.register_username.text().strip()
+        email = self.register_email.text().strip()
+        password = self.register_password.text()
+        confirm = self.register_confirm.text()
+        
+        if not all([username, email, password, confirm]):
+            QMessageBox.warning(self, "خطا", "لطفاً تمام فیلدها را پر کنید")
+            return
+        
+        if password != confirm:
+            QMessageBox.warning(self, "خطا", "رمز عبور و تکرار آن مطابقت ندارند")
+            return
+        
+        if len(password) < 6:
+            QMessageBox.warning(self, "خطا", "رمز عبور باید حداقل 6 کاراکتر باشد")
+            return
+        
+        user = self.user_manager.register_user(username, email, password)
+        
+        if user:
+            self.current_user = user
+            QMessageBox.information(self, "موفق", "ثبت‌نام با موفقیت انجام شد!")
+            self.accept()
+        else:
+            QMessageBox.warning(self, "خطا", "نام کاربری یا ایمیل قبلاً استفاده شده است")
+    
+    def get_user(self):
+        """دریافت کاربر فعلی"""
+        return self.current_user
+
+
 
 
