@@ -106,5 +106,33 @@ class ErrorLog(Base):
     finger_used = Column(Integer, nullable=True)  # 1-5
     
    
+ # روابط
+    user = relationship("User", back_populates="error_logs")
+    lesson_progress = relationship("LessonProgress", back_populates="error_logs")
+    
+    def __repr__(self):
+        return f"<ErrorLog(id={self.id}, error_type='{self.error_type}', expected={self.expected_note}, played={self.played_note})>"
+
+
+class CalibrationData(Base):
+    """داده‌های کالیبراسیون کاربر"""
+    __tablename__ = 'calibration_data'
+    
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
+    
+    # نقاط کالیبراسیون (به صورت JSON string ذخیره می‌شود)
+    calibration_points = Column(Text, nullable=False)  # JSON array of [x, y] points
+    
+    # تنظیمات
+    webcam_width = Column(Integer, default=640)
+    webcam_height = Column(Integer, default=480)
+    
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    def __repr__(self):
+        return f"<CalibrationData(id={self.id}, user_id={self.user_id})>"
+
 
 
