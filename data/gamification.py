@@ -200,6 +200,54 @@ class GamificationManager:
                         )
                         session.add(user_achievement)
                         
-      
+                        # اضافه کردن امتیاز
+                        self.add_points(user_id, achievement.points, f"Achievement: {achievement.name}")
+                        
+                        unlocked.append(achievement)
+                        logger.info(f"User {user_id} unlocked achievement: {achievement.name}")
+                
+                session.commit()
+                return unlocked
+                
+        except Exception as e:
+            logger.error(f"Error checking achievements: {e}")
+            return []
+    
+    def _check_achievement_condition(
+        self,
+        achievement: Achievement,
+        user_stats: UserStats,
+        stats_update: Dict
+    ) -> bool:
+        """بررسی شرط دستاورد"""
+        condition_type = achievement.condition_type
+        condition_value = achievement.condition_value
+        
+        if condition_type == 'lesson_completed':
+            return user_stats.total_lessons_completed >= condition_value
+        
+        elif condition_type == 'accuracy':
+            return stats_update.get('accuracy', 0) >= condition_value
+        
+        elif condition_type == 'streak':
+            return user_stats.current_streak >= condition_value
+        
+        elif condition_type == 'best_time':
+            return stats_update.get('is_best_time', False)
+        
+        return False
+    
+    def get_user_stats(self, user_id: int) -> Optional[Dict]:
+        """دریافت آمار کاربر"""
+        try:
+            with db_manager.get_session() as session:
+                stats = session.query(UserStats).filter(
+                    UserStats.user_id == user_id
+                ).first()
+                
+                if not stats:
+                    return None
+                
+  
 
 
