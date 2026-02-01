@@ -105,5 +105,101 @@ class GamificationManager:
         }
     ]
     
+    def __init__(self):
+        db_manager.initialize()
+        self._initialize_achievements()
+    
+    def _initialize_achievements(self):
+        """راه‌اندازی دستاوردهای پیش‌فرض"""
+        try:
+            with db_manager.get_session() as session:
+                for ach_data in self.DEFAULT_ACHIEVEMENTS:
+                    existing = session.query(Achievement).filter(
+                        Achievement.name == ach_data['name']
+                    ).first()
+                    
+                    if not existing:
+                        achievement = Achievement(**ach_data)
+                        session.add(achievement)
+                        logger.info(f"Created achievement: {ach_data['name']}")
+        except Exception as e:
+            logger.error(f"Error initializing achievements: {e}")
+    
+    def add_points(self, user_id: int, points: int, reason: str = ""):
+        """اضافه کردن امتیاز به کاربر"""
+        try:
+            with db_manager.get_session() as session:
+                stats = session.query(UserStats).filter(
+                    UserStats.user_id == user_id
+                ).first()
+                
+                if not stats:
+                    stats = UserStats(user_id=user_id)
+                    session.add(stats)
+                
+                stats.total_points += points
+                stats.experience += points
+                
+                # محاسبه سطح (هر 1000 experience = 1 level)
+                new_level = (stats.experience // 1000) + 1
+                if new_level > stats.level:
+                    stats.level = new_level
+                    logger.info(f"User {user_id} leveled up to {new_level}")
+                
+                session.commit()
+                logger.info(f"Added {points} points to user {user_id}: {reason}")
+                
+        except Exception as e:
+            logger.error(f"Error adding points: {e}")
+    
+    def check_achievements(self, user_id: int, stats_update: Dict):
+        """بررسی و اعطای دستاوردها"""
+        try:
+            with db_manager.get_session() as session:
+                # دریافت آمار کاربر
+                user_stats = session.query(UserStats).filter(
+                    UserStats.user_id == user_id
+                ).first()
+                
+                if not user_stats:
+                    user_stats = UserStats(user_id=user_id)
+                    session.add(user_stats)
+                
+                # به‌روزرسانی آمار
+                if 'lessons_completed' in stats_update:
+                    user_stats.total_lessons_completed = stats_update['lessons_completed']
+                
+                if 'practice_time' in stats_update:
+                    user_stats.total_practice_time += stats_update['practice_time']
+                
+                if 'streak' in stats_update:
+                    user_stats.current_streak = stats_update['streak']
+                    if stats_update['streak'] > user_stats.longest_streak:
+                        user_stats.longest_streak = stats_update['streak']
+                
+                # بررسی دستاوردها
+                achievements = session.query(Achievement).all()
+                unlocked = []
+                
+                for achievement in achievements:
+                    # بررسی اینکه آیا کاربر قبلاً این دستاورد را دریافت کرده
+                    existing = session.query(UserAchievement).filter(
+                        UserAchievement.user_id == user_id,
+                        UserAchievement.achievement_id == achievement.id
+                    ).first()
+                    
+                    if existing:
+                        continue
+                    
+                    # بررسی شرط دستاورد
+                    if self._check_achievement_condition(achievement, user_stats, stats_update):
+                        # اعطای دستاورد
+                        user_achievement = UserAchievement(
+                            user_id=user_id,
+                            achievement_id=achievement.id
+                        )
+                        session.add(user_achievement)
+                        
+      
 
 
