@@ -247,7 +247,27 @@ class GamificationManager:
                 
                 if not stats:
                     return None
+                              # دریافت دستاوردها
+                achievements = session.query(UserAchievement).filter(
+                    UserAchievement.user_id == user_id
+                ).all()
                 
+                return {
+                    'total_points': stats.total_points,
+                    'level': stats.level,
+                    'experience': stats.experience,
+                    'lessons_completed': stats.total_lessons_completed,
+                    'practice_time': stats.total_practice_time,
+                    'current_streak': stats.current_streak,
+                    'longest_streak': stats.longest_streak,
+                    'achievements_count': len(achievements)
+                }
+        except Exception as e:
+            logger.error(f"Error getting user stats: {e}")
+            return None
+
+
   
+
 
 
