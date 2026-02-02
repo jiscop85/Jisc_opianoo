@@ -81,3 +81,57 @@ try:
                 if not user:
                     logger.warning(f"User not found: {username}")
                     return None
+
+# بررسی رمز عبور
+                password_hash = self._hash_password(password)
+                if user.password_hash != password_hash:
+                    logger.warning(f"Invalid password for user: {username}")
+                    return None
+                
+                # به‌روزرسانی last_login
+                user.last_login = datetime.utcnow()
+                session.commit()
+                
+                logger.info(f"User logged in: {username}")
+                return user
+                
+        except Exception as e:
+            logger.error(f"Error logging in user: {e}")
+            return None
+    
+    def get_user_progress(self, user_id: int) -> List[Dict]:
+        """
+        دریافت پیشرفت کاربر در تمام درس‌ها
+        
+        Returns:
+            لیست دیکشنری‌های پیشرفت
+        """
+        try:
+            with db_manager.get_session() as session:
+                progresses = session.query(LessonProgress).filter(
+                    LessonProgress.user_id == user_id
+                ).all()
+                
+                result = []
+                for progress in progresses:
+                    lesson = session.query(Lesson).filter(
+                        Lesson.id == progress.lesson_id
+                    ).first()
+                    
+                    result.append({
+                        'lesson_id': progress.lesson_id,
+                        'lesson_name': lesson.name if lesson else 'Unknown',
+                        'difficulty': lesson.difficulty if lesson else 'unknown',
+                        'accuracy': progress.accuracy,
+                        'score': progress.score,
+                        'attempts': progress.attempts,
+                        'completed': progress.completed,
+                        'best_time': progress.best_time,
+                        'last_played': progress.last_played.isoformat() if progress.last_played else None
+                    })
+                
+                return result
+                
+        except Exception as e:
+            logger.error(f"Error getting user progress: {e}")
+            return []
