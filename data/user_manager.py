@@ -37,3 +37,47 @@ class UserManager:
         Returns:
             User object در صورت موفقیت، None در صورت خطا
         """
+try:
+            with db_manager.get_session() as session:
+                # بررسی تکراری نبودن username و email
+                existing_user = session.query(User).filter(
+                    (User.username == username) | (User.email == email)
+                ).first()
+                
+                if existing_user:
+                    logger.warning(f"User already exists: {username}")
+                    return None
+                
+                # ایجاد کاربر جدید
+                new_user = User(
+                    username=username,
+                    email=email,
+                    password_hash=self._hash_password(password)
+                )
+                
+                session.add(new_user)
+                session.flush()  # برای دریافت ID
+                
+                logger.info(f"User registered: {username}")
+                return new_user
+                
+        except Exception as e:
+            logger.error(f"Error registering user: {e}")
+            return None
+    
+    def login_user(self, username: str, password: str) -> Optional[User]:
+        """
+        لاگین کاربر
+        
+        Returns:
+            User object در صورت موفقیت، None در صورت خطا
+        """
+        try:
+            with db_manager.get_session() as session:
+                user = session.query(User).filter(
+                    User.username == username
+                ).first()
+                
+                if not user:
+                    logger.warning(f"User not found: {username}")
+                    return None
