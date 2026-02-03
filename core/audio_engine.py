@@ -96,4 +96,77 @@ class AudioEngine:
             # اگر duration مشخص شده، note off را زمان‌بندی کن
             if duration is not None:
                 threading.Timer(duration, self.note_off, args=[midi_note, channel]).start()
+            
+        except Exception as e:
+            logger.error(f"Error playing note {midi_note}: {e}")
+    
+    def note_off(self, midi_note: int, channel: int = 0):
+        """قطع یک نت"""
+        if not self.initialized or self.fs is None:
+            return
+        
+        try:
+            self.fs.noteoff(channel, midi_note)
+            if midi_note in self.active_notes:
+                del self.active_notes[midi_note]
+        except Exception as e:
+            logger.error(f"Error stopping note {midi_note}: {e}")
+    
+    def _note_off_manager(self):
+        """مدیریت خودکار note off برای نت‌های فعال"""
+        while self.running:
+            current_time = time.time()
+            notes_to_remove = []
+            
+            for midi_note, start_time in self.active_notes.items():
+                # اگر نت بیشتر از delay مشخص شده فعال باشد، آن را قطع کن
+                if current_time - start_time > config.NOTE_OFF_DELAY:
+                    self.note_off(midi_note)
+                    notes_to_remove.append(midi_note)
+            
+            for note in notes_to_remove:
+                if note in self.active_notes:
+                    del self.active_notes[note]
+            
+            time.sleep(0.05)  # بررسی هر 50ms
+    
+    def stop_all_notes(self, channel: int = 0):
+        """قطع تمام نت‌ها"""
+        if not self.initialized or self.fs is None:
+            return
+        
+        try:
+            self.fs.all_notes_off(channel)
+            self.active_notes.clear()
+        except Exception as e:
+            logger.error(f"Error stopping all notes: {e}")
+    
+    def set_volume(self, volume: float, channel: int = 0):
+        """تنظیم حجم صدا (0.0 - 1.0)"""
+        if not self.initialized or self.fs is None:
+            return
+        
+        try:
+            # تبدیل به مقدار MIDI (0-127)
+            midi_volume = int(volume * 127)
+            self.fs.cc(channel, 7, midi_volume)  # CC 7 = Volume
+        except Exception as e:
+            logger.error(f"Error setting volume: {e}")
+    
+    def close(self):
+        """بستن موتور صوتی"""
+        self.running = False
+        if self.note_off_thread:
+            self.note_off_thread.join(timeout=1.0)
+        
+        if self.fs:
+            self.stop_all_notes()
+            self.fs.delete()
+            self.fs = None
+        
+        self.initialized = False
+        logger.info("Audio engine closed")
+
+
+
 
