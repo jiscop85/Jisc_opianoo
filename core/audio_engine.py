@@ -71,4 +71,29 @@ class AudioEngine:
         duration: Optional[float] = None
     ):
  
+       """
+        پخش یک نت
+        
+        Args:
+            midi_note: شماره MIDI (0-127)
+            velocity: شدت صدا (0-127)
+            channel: کانال MIDI (0-15)
+            duration: مدت زمان پخش (ثانیه). اگر None باشد، باید note_off صدا زده شود
+        """
+        if not self.initialized or self.fs is None:
+            return
+        
+        try:
+            # محدود کردن velocity
+            velocity = max(0, min(127, velocity))
+            
+            # پخش نت
+            self.fs.noteon(channel, midi_note, velocity)
+            
+            # ثبت زمان شروع
+            self.active_notes[midi_note] = time.time()
+            
+            # اگر duration مشخص شده، note off را زمان‌بندی کن
+            if duration is not None:
+                threading.Timer(duration, self.note_off, args=[midi_note, channel]).start()
 
