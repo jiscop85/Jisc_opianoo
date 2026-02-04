@@ -230,6 +230,34 @@ class HandTracker(QThread):
                         )
                     )
                     
-          
+                    # تبدیل landmarks
+                    landmarks_list = self.get_hand_landmarks(hand_landmarks)
+                    transformed_landmarks = self.transform_landmarks(
+                        landmarks_list,
+                        frame.shape[1],
+                        frame.shape[0]
+                    )
+                    
+                    # تشخیص دست چپ یا راست
+                    hand_label = hand_info.classification[0].label
+                    
+                    detected_hands.append({
+                        'landmarks': transformed_landmarks,
+                        'landmarks_raw': landmarks_list,
+                        'handedness': hand_label,
+                        'confidence': hand_info.classification[0].score,
+                        'landmarks_dict': [{'x': lm['x'], 'y': lm['y'], 'z': lm['z'], 'visibility': lm['visibility']} for lm in landmarks_list]
+                    })
+            
+            # ارسال سیگنال‌ها
+            self.frame_ready.emit(display_frame)
+            if detected_hands:
+                self.hands_detected.emit(detected_hands)
+            
+            self.current_frame = display_frame
+        
+        logger.info("Hand tracking thread finished")
+
+
 
 
