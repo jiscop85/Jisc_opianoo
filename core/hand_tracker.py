@@ -78,3 +78,80 @@ class HandTracker(QThread):
         """
         تبدیل landmarks MediaPipe به لیست دیکشنری
      
+   
+        Returns:
+            لیست دیکشنری‌ها با کلیدهای: x, y, z, visibility
+        """
+        result = []
+        for landmark in landmarks.landmark:
+            result.append({
+                'x': landmark.x,
+                'y': landmark.y,
+                'z': landmark.z,
+                'visibility': landmark.visibility
+            })
+        return result
+    
+    def transform_landmarks(
+        self,
+        landmarks: List[Dict],
+        frame_width: int,
+        frame_height: int
+    ) -> List[Tuple[float, float]]:
+        """
+        تبدیل landmarks به مختصات صفحه پیانو (در صورت وجود کالیبراسیون)
+        
+        Returns:
+            لیست tuple های (x, y) در مختصات صفحه پیانو
+        """
+        if self.calibration_points is None:
+            # بدون کالیبراسیون، برگرداندن مختصات نرمال شده
+            return [(lm['x'], lm['y']) for lm in landmarks]
+        
+        # تبدیل با perspective transform
+        # نقاط مقصد برای صفحه پیانو (مستطیل کامل)
+        dst_points = np.array([
+            [0, 0],
+            [config.WINDOW_WIDTH, 0],
+            [config.WINDOW_WIDTH, config.WINDOW_HEIGHT],
+            [0, config.WINDOW_HEIGHT]
+        ], dtype=np.float32)
+        
+        transformed = []
+        for lm in landmarks:
+            # تبدیل از مختصات نرمال به پیکسل
+            pixel_x = lm['x'] * frame_width
+            pixel_y = lm['y'] * frame_height
+            
+            # اعمال perspective transform
+            transformed_point = map_coordinates(
+                (pixel_x, pixel_y),
+                self.calibration_points,
+                dst_points
+            )
+            
+            transformed.append(transformed_point)
+        
+        return transformed
+    
+    def detect_pressed_keys(
+        self,
+        landmarks: List[Tuple[float, float]],
+        piano_keys: Dict[int, Tuple[float, float, float, float]],  # midi_note: (x, y, width, height)
+        raw_landmarks: Optional[List[Dict]] = None
+    ) -> List[Tuple[int, Optional[int]]]:
+        """
+        تشخیص کلاویه‌های فشرده شده بر اساس موقعیت landmarks
+        
+        Args:
+            landmarks: لیست موقعیت‌های انگشتان (x, y)
+            piano_keys: دیکشنری کلاویه‌ها با موقعیت و اندازه
+            raw_landmarks: لیست landmarks خام برای تشخیص انگشت
+        
+        Returns:
+            لیست tuple های (midi_note, finger_number) - finger_number می‌تواند None باشد
+        """
+        pressed_keys = []
+        
+    
+
