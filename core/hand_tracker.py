@@ -153,5 +153,83 @@ class HandTracker(QThread):
         """
         pressed_keys = []
         
+        # اگر raw_landmarks موجود باشد، از finger detector استفاده کن
+        if raw_landmarks:
+            finger_results = self.finger_detector.detect_all_fingers_on_keys(
+                raw_landmarks,
+                piano_keys
+            )
+            return [(midi_note, finger_num) for midi_note, _, finger_num in finger_results]
+        
+        # روش قدیمی (fallback)
+        finger_tips = [4, 8, 12, 16, 20]  # MediaPipe landmark indices
+        
+        for tip_idx in finger_tips:
+            if tip_idx >= len(landmarks):
+                continue
+            
+            tip_pos = landmarks[tip_idx]
+            
+            # بررسی برخورد با هر کلاویه
+            for midi_note, (key_x, key_y, key_w, key_h) in piano_keys.items():
+                # بررسی اینکه آیا نوک انگشت در محدوده کلاویه است
+                if (key_x <= tip_pos[0] <= key_x + key_w and
+                    key_y <= tip_pos[1] <= key_y + key_h):
+                    
+                    # بررسی فاصله از مرکز کلاویه
+                    center_x = key_x + key_w / 2
+                    center_y = key_y + key_h / 2
+                    distance = calculate_distance(tip_pos, (center_x, center_y))
+                    
+                    # اگر فاصله کمتر از threshold باشد
+                    threshold = min(key_w, key_h) * config.NOTE_DETECTION_THRESHOLD
+                    if distance <= threshold:
+                        if not any(note == midi_note for note, _ in pressed_keys):
+                            pressed_keys.append((midi_note, None))
+        
+        return pressed_keys
     
+    def run(self):
+        """Thread اصلی"""
+        while self.running:
+            if self.cap is None:
+                break
+            
+            ret, frame = self.cap.read()
+            if not ret:
+                continue
+            
+            # تبدیل BGR به RGB برای MediaPipe
+            rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            
+            # پردازش با MediaPipe
+            results = self.hands.process(rgb_frame)
+            
+            # آماده‌سازی فریم برای نمایش
+            display_frame = frame.copy()
+            detected_hands = []
+            
+            if results.multi_hand_landmarks:
+                for hand_landmarks, hand_info in zip(
+                    results.multi_hand_landmarks,
+                    results.multi_hand_handedness
+                ):
+                    # رسم landmarks
+                    self.mp_drawing.draw_landmarks(
+                        display_frame,
+                        hand_landmarks,
+                        self.mp_hands.HAND_CONNECTIONS,
+                        self.mp_drawing.DrawingSpec(
+                            color=config.COLORS['hand_landmark'],
+                            thickness=2,
+                            circle_radius=2
+                        ),
+                        self.mp_drawing.DrawingSpec(
+                            color=config.COLORS['hand_connection'],
+                            thickness=2
+                        )
+                    )
+                    
+          
+
 
