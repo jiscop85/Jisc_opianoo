@@ -327,9 +327,56 @@ class LessonEngine:
                 'progress': 0.0,
                 'stats': self.stats.copy()
             }
+               accuracy = (self.stats['correct_notes'] / self.stats['total_notes']) * 100.0
+        progress = (self.current_note_index / len(self.lesson_notes)) * 100.0
         
+        return {
+            'accuracy': accuracy,
+            'progress': progress,
+            'stats': self.stats.copy()
+        }
+    
+    def get_error_logs(self) -> List[Dict]:
+        """دریافت لاگ اشتباهات"""
+        error_logs = []
+        
+        for note in self.lesson_notes:
+            if note.status in [NoteStatus.WRONG, NoteStatus.MISSED]:
+                error_logs.append({
+                    'expected_note': note.midi_note,
+                    'played_note': None,
+                    'error_type': note.status.value,
+                    'timestamp': note.start_time
+                })
+        
+        # اضافه کردن نت‌های اضافی
+        for played_note in self.played_notes:
+            # بررسی اینکه آیا این نت تطبیق شده یا نه
+            matched = False
+            for lesson_note in self.lesson_notes:
+                if (abs(lesson_note.start_time - played_note.timestamp) <= 
+                    config.TOLERANCE_MS / 1000.0 and
+                    abs(lesson_note.midi_note - played_note.midi_note) <= 
+                    config.TOLERANCE_SEMITONE):
+                    matched = True
+                    break
+            
+            if not matched:
+                error_logs.append({
+                    'expected_note': None,
+                    'played_note': played_note.midi_note,
+                    'error_type': 'extra_note',
+                    'timestamp': played_note.timestamp
+                })
+        
+        return error_logs
+
+
+    
+
  
   
+
 
 
 
