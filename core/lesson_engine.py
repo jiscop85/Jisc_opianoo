@@ -235,4 +235,38 @@ class LessonEngine:
             velocity=velocity
         )
         self.played_notes.append(played_note)
- 
+        
+        # پیدا کردن نزدیک‌ترین نت در درس
+        result = self._match_note(played_note)
+        
+        details = {
+            'finger_used': finger,
+            'expected_finger': expected_finger,
+            'finger_correct': (finger == expected_finger) if (finger and expected_finger) else None
+        }
+        
+        if result[0]:
+            logger.debug(f"Note matched: {midi_to_note_name(midi_note)}")
+        else:
+            logger.debug(f"Note not matched: {midi_to_note_name(midi_note)} - {result[1]}")
+        
+        return result[0], result[1], details
+    
+    def _match_note(self, played_note: PlayedNote) -> Tuple[bool, str]:
+        """
+        تطبیق نت نواخته شده با نت‌های درس
+        
+        Returns:
+            Tuple[bool, str]: (matched, message)
+        """
+        current_time = played_note.timestamp
+        
+        # پیدا کردن نت‌های نزدیک در زمان
+        candidates = []
+        for i, lesson_note in enumerate(self.lesson_notes):
+            time_diff = abs(lesson_note.start_time - current_time)
+            
+  
+
+
+
