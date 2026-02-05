@@ -265,8 +265,72 @@ class LessonEngine:
         candidates = []
         for i, lesson_note in enumerate(self.lesson_notes):
             time_diff = abs(lesson_note.start_time - current_time)
-            
+                      # بررسی تحمل زمانی
+            if time_diff <= (config.TOLERANCE_MS / 1000.0):
+                candidates.append((i, lesson_note, time_diff))
+        
+        if not candidates:
+            # نت اضافی
+            self.stats['extra_notes'] += 1
+            return False, "Extra note"
+        
+        # انتخاب نزدیک‌ترین نت
+        candidates.sort(key=lambda x: x[2])
+        best_match_idx, best_match_note, _ = candidates[0]
+        
+        # بررسی تطابق نت
+        note_diff = abs(best_match_note.midi_note - played_note.midi_note)
+        
+        if note_diff <= config.TOLERANCE_SEMITONE:
+            # نت صحیح
+            if best_match_note.status == NoteStatus.PENDING:
+                best_match_note.status = NoteStatus.CORRECT
+                self.stats['correct_notes'] += 1
+                self.current_note_index = max(self.current_note_index, best_match_idx + 1)
+                return True, "Correct"
+            else:
+                # این نت قبلاً نواخته شده
+                return False, "Already played"
+        else:
+            # نت اشتباه
+            best_match_note.status = NoteStatus.WRONG
+            self.stats['wrong_notes'] += 1
+            return False, f"Wrong note (expected {midi_to_note_name(best_match_note.midi_note)})"
+    
+    def _check_missed_notes(self):
+        """بررسی نت‌های از دست رفته"""
+        current_time = self.get_current_time()
+        
+        for note in self.lesson_notes:
+            if note.status == NoteStatus.PENDING:
+                # اگر زمان نت گذشته باشد
+                if note.start_time < current_time - (config.TOLERANCE_MS / 1000.0):
+                    note.status = NoteStatus.MISSED
+                    self.stats['missed_notes'] += 1
+    
+    def get_next_notes(self, count: int = 5) -> List[LessonNote]:
+        """دریافت نت‌های بعدی"""
+        current_time = self.get_current_time()
+        
+        upcoming = []
+        for note in self.lesson_notes:
+            if note.start_time > current_time and len(upcoming) < count:
+                upcoming.append(note)
+        
+        return upcoming
+    
+    def get_progress(self) -> Dict:
+        """دریافت پیشرفت درس"""
+        if self.stats['total_notes'] == 0:
+            return {
+                'accuracy': 0.0,
+                'progress': 0.0,
+                'stats': self.stats.copy()
+            }
+        
+ 
   
+
 
 
 
