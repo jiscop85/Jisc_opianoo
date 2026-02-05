@@ -134,6 +134,105 @@ class LessonEngine:
                 (msg.type == 'note_on' and msg.velocity == 0)):
                 if msg.note == note_on_msg.note:
                     return current_time - start_time
-   
+        
+        # اگر note off پیدا نشد، مدت زمان پیش‌فرض
+        return 0.5
     
-
+    def start_lesson(self):
+        """شروع درس"""
+        self.lesson_start_time = time.time()
+        self.current_note_index = 0
+        self.played_notes = []
+        self.is_playing = True
+        self.is_paused = False
+        
+        # ریست آمار
+        self.stats = {
+            'total_notes': len(self.lesson_notes),
+            'correct_notes': 0,
+            'wrong_notes': 0,
+            'missed_notes': 0,
+            'extra_notes': 0
+        }
+        
+        # ریست وضعیت نت‌ها
+        for note in self.lesson_notes:
+            note.status = NoteStatus.PENDING
+        
+        # ریست زمان توقف
+        self.total_pause_time = 0.0
+        self.pause_start_time = None
+        
+        logger.info("Lesson started")
+    
+    def pause_lesson(self):
+        """توقف موقت درس"""
+        if not self.is_paused:
+            self.is_paused = True
+            self.pause_start_time = time.time()
+            logger.info("Lesson paused")
+    
+    def resume_lesson(self):
+        """ادامه درس"""
+        if self.is_paused and self.pause_start_time:
+            # محاسبه زمان توقف
+            pause_duration = time.time() - self.pause_start_time
+            self.total_pause_time += pause_duration
+            self.pause_start_time = None
+            self.is_paused = False
+            logger.info("Lesson resumed")
+    
+    def stop_lesson(self):
+        """توقف درس"""
+        self.is_playing = False
+        self.is_paused = False
+        
+        # بررسی نت‌های از دست رفته
+        self._check_missed_notes()
+        
+        logger.info("Lesson stopped")
+    
+    def get_current_time(self) -> float:
+        """دریافت زمان فعلی در درس (ثانیه)"""
+        if not self.lesson_start_time:
+            return 0.0
+        
+        if self.is_paused:
+            # زمان قبل از pause
+            if self.pause_start_time:
+                return (self.pause_start_time - self.lesson_start_time) - self.total_pause_time
+            return (time.time() - self.lesson_start_time) - self.total_pause_time
+        
+        return (time.time() - self.lesson_start_time) - self.total_pause_time
+    
+    def register_played_note(
+        self,
+        midi_note: int,
+        velocity: int = 100,
+        finger: Optional[int] = None,
+        expected_finger: Optional[int] = None
+    ):
+        """
+        ثبت یک نت که توسط کاربر نواخته شده
+        
+        Args:
+            midi_note: شماره MIDI نت نواخته شده
+            velocity: شدت صدا
+            finger: شماره انگشت استفاده شده (1-5)
+            expected_finger: شماره انگشت مورد انتظار (1-5)
+        
+        Returns:
+            Tuple[bool, str, Dict]: (success, message, details)
+        """
+        if not self.is_playing or self.is_paused:
+            return False, "Lesson is not active", {}
+        
+        current_time = self.get_current_time()
+        
+        played_note = PlayedNote(
+            midi_note=midi_note,
+            timestamp=current_time,
+            velocity=velocity
+        )
+        self.played_notes.append(played_note)
+ 
