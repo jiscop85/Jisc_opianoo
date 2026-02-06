@@ -48,3 +48,41 @@ class Metronome:
         logger.info(f"Metronome started at {self.tempo} BPM")
     
 
+    def stop(self):
+        """توقف مترونوم"""
+        self.running = False
+        if self.thread:
+            self.thread.join(timeout=1.0)
+        logger.info("Metronome stopped")
+    
+    def _run(self):
+        """Thread اصلی مترونوم"""
+        beat_interval = 60.0 / self.tempo  # ثانیه بین هر ضرب
+        beat_number = 0
+        
+        while self.running:
+            start_time = time.time()
+            
+            # فراخوانی callback
+            if self.callback:
+                self.callback(beat_number)
+            
+            # پخش صدا (اگر audio engine تنظیم شده)
+            if self.audio_engine:
+                # ضرب اول (downbeat) با نت بالاتر
+                if beat_number == 0:
+                    # می‌توان از یک نت بالاتر استفاده کرد
+                    pass  # می‌توان با audio_engine یک صدای tick پخش کرد
+            
+            beat_number = (beat_number + 1) % self.beats_per_bar
+            
+            # انتظار تا ضرب بعدی
+            elapsed = time.time() - start_time
+            sleep_time = max(0, beat_interval - elapsed)
+            time.sleep(sleep_time)
+    
+    def is_running(self) -> bool:
+        """بررسی اینکه مترونوم در حال اجرا است"""
+        return self.running
+
+
