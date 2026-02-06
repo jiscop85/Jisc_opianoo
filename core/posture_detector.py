@@ -161,3 +161,43 @@ class PostureDetector:
         if not distances:
             return {'too_close': False, 'too_far': False}
         
+
+        avg_distance = np.mean(distances)
+        min_distance = min(distances)
+        
+        # اگر فاصله متوسط خیلی کم باشد
+        too_close = avg_distance < 0.03  # threshold
+        
+        return {'too_close': too_close, 'too_far': False}
+    
+    def _check_hand_tension(self, landmarks: List[Dict]) -> Dict:
+        """بررسی تنش دست"""
+        # محاسبه زاویه بین مفاصل
+        # اگر زوایا خیلی تیز باشند، دست سفت است
+        
+        # بررسی زاویه MCP-PIP-DIP برای انگشت index
+        index_mcp = landmarks[HAND_LANDMARKS['INDEX_MCP']]
+        index_pip = landmarks[HAND_LANDMARKS['INDEX_PIP']]
+        index_dip = landmarks[HAND_LANDMARKS['INDEX_DIP']]
+        
+        # محاسبه زاویه (ساده شده)
+        # اگر فاصله بین مفاصل خیلی کم باشد، انگشت خیلی خم است (سفت)
+        mcp_pip_dist = calculate_distance(
+            (index_mcp['x'], index_mcp['y']),
+            (index_pip['x'], index_pip['y'])
+        )
+        pip_dip_dist = calculate_distance(
+            (index_pip['x'], index_pip['y']),
+            (index_dip['x'], index_dip['y'])
+        )
+        
+        # اگر نسبت فاصله‌ها خیلی کم باشد، دست سفت است
+        ratio = pip_dip_dist / mcp_pip_dist if mcp_pip_dist > 0 else 1.0
+        too_tense = ratio < 0.5  # threshold
+        
+        return {'too_tense': too_tense, 'relaxed': not too_tense}
+
+
+
+
+
