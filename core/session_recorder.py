@@ -125,6 +125,54 @@ class SessionRecorder:
             logger.error(f"Error loading recording: {e}")
             return False
 
+class SessionPlayer:
+    """پخش کننده جلسه ضبط شده"""
+    
+    def __init__(self, recording_path: str):
+        self.recording_path = recording_path
+        self.events: List[Dict] = []
+        self.current_index = 0
+        self.playing = False
+        self.playback_speed = 1.0
+    
+    def load(self) -> bool:
+        """لود ضبط"""
+        try:
+            with open(self.recording_path, 'r', encoding='utf-8') as f:
+                recording_data = json.load(f)
+            
+            self.events = recording_data.get('events', [])
+            self.current_index = 0
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error loading recording: {e}")
+            return False
+    
+    def get_next_event(self, current_time: float) -> Optional[Dict]:
+        """دریافت رویداد بعدی بر اساس زمان"""
+        while self.current_index < len(self.events):
+            event = self.events[self.current_index]
+            event_time = event['timestamp'] / self.playback_speed
+            
+            if event_time <= current_time:
+                self.current_index += 1
+                return event
+            else:
+                break
+        
+        return None
+    
+    def reset(self):
+        """ریست پخش"""
+        self.current_index = 0
+        self.playing = False
+    
+    def set_playback_speed(self, speed: float):
+        """تنظیم سرعت پخش"""
+        self.playback_speed = max(0.25, min(4.0, speed))  # محدود به 0.25x تا 4x
+
+
 
 
 
