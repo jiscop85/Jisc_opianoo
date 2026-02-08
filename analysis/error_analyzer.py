@@ -143,6 +143,58 @@ class ErrorAnalyzer:
                     note_ranges['middle'] += 1
                 else:
                     note_ranges['high'] += 1
+          # تحلیل کلیدهای سفید vs سیاه
+        white_key_errors = 0
+        black_key_errors = 0
         
+        for error in self.error_logs:
+            expected = error.get('expected_note')
+            if expected is not None:
+                if is_white_key(expected):
+                    white_key_errors += 1
+                else:
+                    black_key_errors += 1
+        
+        return {
+            'most_problematic_notes': [
+                {
+                    'note': note,
+                    'name': midi_to_note_name(note),
+                    'error_count': count
+                }
+                for note, count in problematic_notes.most_common(5)
+            ],
+            'note_range_errors': dict(note_ranges),
+            'white_vs_black_keys': {
+                'white_key_errors': white_key_errors,
+                'black_key_errors': black_key_errors,
+                'ratio': white_key_errors / black_key_errors if black_key_errors > 0 else float('inf')
+            }
+        }
+    
+    def _identify_difficulty_areas(self) -> List[Dict]:
+        """شناسایی مناطق مشکل‌دار"""
+        difficulty_areas = []
+        
+        # تحلیل بر اساس نوع اشتباه
+        error_types = self._analyze_error_types()
+        
+        if error_types.get('missed_note', 0) > len(self.error_logs) * 0.3:
+            difficulty_areas.append({
+                'area': 'Timing',
+                'description': 'مشکل در زمان‌بندی - نت‌های زیادی از دست رفته‌اند',
+                'severity': 'high' if error_types['missed_note'] > len(self.error_logs) * 0.5 else 'medium'
+            })
+        
+        if error_types.get('wrong_note', 0) > len(self.error_logs) * 0.3:
+            difficulty_areas.append({
+                'area': 'Note Recognition',
+                'description': 'مشکل در تشخیص نت‌ها - نت‌های اشتباه زیادی نواخته شده',
+                'severity': 'high' if error_types['wrong_note'] > len(self.error_logs) * 0.5 else 'medium'
+            })
+        
+     
+
       
+
 
