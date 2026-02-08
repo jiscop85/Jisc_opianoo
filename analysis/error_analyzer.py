@@ -264,10 +264,61 @@ class ErrorAnalyzer:
                 "سعی کنید با سرعت کمتری تمرین کنید و روی زمان‌بندی تمرکز کنید."
             )
         
-
+        # توصیه برای wrong notes
+        wrong_count = error_types.get('wrong_note', 0)
+        if wrong_count > total_errors * 0.3:
+            recommendations.append(
+                f"شما {wrong_count} نت اشتباه نواخته‌اید. "
+                "قبل از نواختن، موقعیت دست خود را بررسی کنید و مطمئن شوید که روی کلاویه صحیح قرار دارد."
+            )
+        
+        # توصیه برای extra notes
+        extra_count = error_types.get('extra_note', 0)
+        if extra_count > total_errors * 0.2:
+            recommendations.append(
+                f"شما {extra_count} نت اضافی نواخته‌اید. "
+                "سعی کنید کنترل بیشتری روی دست خود داشته باشید و فقط نت‌های لازم را بنوازید."
+            )
+        
+        # توصیه بر اساس مناطق مشکل‌دار
+        difficulty_areas = analysis.get('difficulty_areas', [])
+        for area in difficulty_areas:
+            if area['severity'] == 'high':
+                recommendations.append(
+                    f"⚠️ مشکل جدی در {area['area']}: {area['description']}"
+                )
+        
+        # توصیه برای finger usage
+        finger_usage = analysis.get('finger_usage_errors', {})
+        finger_patterns = finger_usage.get('finger_patterns', {})
+        if finger_patterns:
+            for finger, pattern in finger_patterns.items():
+                recommendations.append(
+                    f"⚠️ شما اغلب از انگشت {pattern['used']} استفاده می‌کنید "
+                    f"در حالی که باید از انگشت {pattern['should_use']} استفاده کنید. "
+                    f"این مشکل {pattern['count']} بار رخ داده است."
+                )
+        
+        # توصیه‌های کلی
+        accuracy_estimate = 100 - (total_errors / max(1, total_errors + 50) * 100)
+        if accuracy_estimate < 50:
+            recommendations.append(
+                "دقت شما کمتر از 50% است. پیشنهاد می‌شود این درس را دوباره تمرین کنید."
+            )
+        elif accuracy_estimate < 70:
+            recommendations.append(
+                "دقت شما قابل قبول است اما می‌تواند بهتر شود. چند بار دیگر این درس را تمرین کنید."
+            )
+        else:
+            recommendations.append(
+                "دقت خوبی دارید! برای بهبود بیشتر، سعی کنید سرعت را افزایش دهید."
+            )
+        
+        return recommendations
      
 
       
+
 
 
 
