@@ -192,9 +192,82 @@ class ErrorAnalyzer:
                 'description': 'مشکل در تشخیص نت‌ها - نت‌های اشتباه زیادی نواخته شده',
                 'severity': 'high' if error_types['wrong_note'] > len(self.error_logs) * 0.5 else 'medium'
             })
+           if error_types.get('extra_note', 0) > len(self.error_logs) * 0.2:
+            difficulty_areas.append({
+                'area': 'Control',
+                'description': 'مشکل در کنترل - نت‌های اضافی زیادی نواخته شده',
+                'severity': 'medium'
+            })
         
+        # تحلیل الگوهای نت
+        note_patterns = self._analyze_note_patterns()
+        if note_patterns.get('white_vs_black_keys', {}).get('black_key_errors', 0) > 0:
+            black_ratio = note_patterns['white_vs_black_keys'].get('ratio', 0)
+            if black_ratio < 2.0:  # نسبت کمتر از 2:1
+                difficulty_areas.append({
+                    'area': 'Black Keys',
+                    'description': 'مشکل در نواختن کلیدهای سیاه',
+                    'severity': 'medium'
+                })
+        
+        return difficulty_areas
+    
+    def _analyze_finger_usage(self) -> Dict:
+        """تحلیل استفاده از انگشتان"""
+        finger_errors = defaultdict(int)
+        finger_usage = defaultdict(list)  # finger: [expected, actual]
+        
+        for error in self.error_logs:
+            finger_used = error.get('finger_used')
+            if finger_used:
+                finger_errors[finger_used] += 1
+                
+                # اگر اطلاعات انگشت مورد انتظار موجود باشد
+                expected_finger = error.get('expected_finger')
+                if expected_finger and expected_finger != finger_used:
+                    finger_usage[finger_used].append(expected_finger)
+        
+        # پیدا کردن الگوهای استفاده اشتباه انگشت
+        finger_patterns = {}
+        for finger, expected_list in finger_usage.items():
+            if expected_list:
+                most_common_expected = Counter(expected_list).most_common(1)[0][0]
+                finger_patterns[finger] = {
+                    'used': finger,
+                    'should_use': most_common_expected,
+                    'count': len(expected_list)
+                }
+        
+        return {
+            'finger_errors': dict(finger_errors),
+            'finger_patterns': finger_patterns,
+            'total_finger_errors': sum(finger_errors.values())
+        }
+    
+    def _generate_recommendations(self, analysis: Dict) -> List[str]:
+        """تولید توصیه‌های هوشمند"""
+        recommendations = []
+        
+        # توصیه‌های بر اساس نوع اشتباه
+        error_types = analysis.get('error_types', {})
+        total_errors = analysis.get('total_errors', 0)
+        
+        if total_errors == 0:
+            recommendations.append("عالی! هیچ اشتباهی نداشتید. به تمرین ادامه دهید!")
+            return recommendations
+        
+        # توصیه برای missed notes
+        missed_count = error_types.get('missed_note', 0)
+        if missed_count > total_errors * 0.3:
+            recommendations.append(
+                f"شما {missed_count} نت را از دست داده‌اید. "
+                "سعی کنید با سرعت کمتری تمرین کنید و روی زمان‌بندی تمرکز کنید."
+            )
+        
+
      
 
       
+
 
 
