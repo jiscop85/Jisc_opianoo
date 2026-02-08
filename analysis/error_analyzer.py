@@ -83,3 +83,66 @@ class ErrorAnalyzer:
                     error_pairs[pair] += 1
         
 
+        # تبدیل به لیست
+        common_errors = []
+        for (expected, played), count in error_pairs.most_common(top_n):
+            common_errors.append({
+                'expected_note': expected,
+                'expected_name': midi_to_note_name(expected) if expected else None,
+                'played_note': played,
+                'played_name': midi_to_note_name(played) if played else None,
+                'count': count,
+                'percentage': (count / len(self.error_logs)) * 100.0
+            })
+        
+        return common_errors
+    
+    def _analyze_timing(self) -> Dict:
+        """تحلیل زمان‌بندی اشتباهات"""
+        if not self.error_logs:
+            return {}
+        
+        timestamps = [error.get('timestamp', 0) for error in self.error_logs]
+        
+        if not timestamps:
+            return {}
+        
+        # تقسیم‌بندی به بخش‌های زمانی
+        max_time = max(timestamps)
+        time_segments = 4  # تقسیم به 4 بخش
+        
+        segment_errors = defaultdict(int)
+        for timestamp in timestamps:
+            segment = int((timestamp / max_time) * time_segments) if max_time > 0 else 0
+            segment = min(segment, time_segments - 1)
+            segment_errors[segment] += 1
+        
+        return {
+            'total_time': max_time,
+            'errors_per_segment': dict(segment_errors),
+            'average_error_time': sum(timestamps) / len(timestamps),
+            'error_distribution': 'uniform' if len(set(segment_errors.values())) == 1 else 'variable'
+        }
+    
+    def _analyze_note_patterns(self) -> Dict:
+        """تحلیل الگوهای نت"""
+        # تحلیل نت‌های مشکل‌دار
+        problematic_notes = Counter()
+        note_ranges = defaultdict(int)
+        
+        for error in self.error_logs:
+            expected = error.get('expected_note')
+            if expected is not None:
+                problematic_notes[expected] += 1
+                
+                # محدوده نت
+                octave = (expected // 12) - 1
+                if octave < 3:
+                    note_ranges['low'] += 1
+                elif octave < 5:
+                    note_ranges['middle'] += 1
+                else:
+                    note_ranges['high'] += 1
+        
+      
+
