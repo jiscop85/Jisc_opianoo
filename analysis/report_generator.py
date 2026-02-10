@@ -186,7 +186,49 @@ class ReportGenerator:
         
         return str(file_path)
     
-   
+    def generate_text_summary(self) -> str:
+        """تولید خلاصه متنی گزارش"""
+        lines = []
+        lines.append("=" * 50)
+        lines.append(f"Lesson Report: {self.lesson_name}")
+        lines.append("=" * 50)
+        lines.append("")
+        
+        # آمار کلی
+        total_errors = self.analysis.get('total_errors', 0)
+        lines.append(f"Total Errors: {total_errors}")
+        lines.append("")
+        
+        # انواع اشتباهات
+        error_types = self.analysis.get('error_types', {})
+        if error_types:
+            lines.append("Error Types:")
+            for error_type, count in error_types.items():
+                lines.append(f"  - {error_type}: {count}")
+            lines.append("")
+        
+        # توصیه‌ها
+        recommendations = self.analysis.get('recommendations', [])
+        if recommendations:
+            lines.append("Recommendations:")
+            for i, rec in enumerate(recommendations, 1):
+                lines.append(f"  {i}. {rec}")
+            lines.append("")
+        
+        # مناطق مشکل‌دار
+        difficulty_areas = self.analysis.get('difficulty_areas', [])
+        if difficulty_areas:
+            lines.append("Difficulty Areas:")
+            for area in difficulty_areas:
+                severity_icon = "🔴" if area['severity'] == 'high' else "🟡"
+                lines.append(f"  {severity_icon} {area['area']}: {area['description']}")
+            lines.append("")
+        
+        lines.append("=" * 50)
+        
+        return "\n".join(lines)
+
+
 
 
 
