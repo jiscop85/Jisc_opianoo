@@ -159,6 +159,34 @@ class ReportGenerator:
         if not common_errors:
             return ""
         
-     
+        # محدود به 10 مورد اول
+        top_errors = common_errors[:10]
+        
+        fig, ax = plt.subplots(figsize=(10, 6))
+        
+        # ساخت label برای هر اشتباه
+        labels = []
+        for error in top_errors:
+            expected = error.get('expected_name', '?')
+            played = error.get('played_name', 'missed')
+            labels.append(f"{expected} → {played}")
+        
+        counts = [e['count'] for e in top_errors]
+        
+        ax.barh(labels, counts, color='#ff6b6b', alpha=0.7)
+        ax.set_xlabel('Frequency')
+        ax.set_title('Most Common Errors', fontsize=14, fontweight='bold')
+        ax.grid(axis='x', alpha=0.3)
+        
+        plt.tight_layout()
+        
+        file_path = output_dir / 'common_errors.png'
+        plt.savefig(file_path, dpi=150, bbox_inches='tight')
+        plt.close()
+        
+        return str(file_path)
+    
+   
+
 
 
